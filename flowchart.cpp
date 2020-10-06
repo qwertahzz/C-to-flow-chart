@@ -1,4 +1,9 @@
-#include<bits/stdc++.h>
+#include<iostream>
+#include<cstdio>
+#include<cstring>
+#include<cmath>
+#include<algorithm>
+#include<stack>
 using namespace std;
 string str,str1;
 bool lnote=0;
@@ -34,67 +39,87 @@ bool isgap(char x)
 	if(x=='_')return false;
 	return true;
 }
-int node=0,floor=0;
+int node=0,flor=0;
 struct st{
-	int node1,floor1,type1;
+	int node1,flor1,type1;
 };
-stack<st>data;
+stack<st>data;//用stack储存层级信息
 int bracket=0;//圆括号
-string shape="";
+bool special=0;
 void start_if(int i)
 {
-	floor++,node++;
+	node++;
 	st a;
-	a.node1=node,a.floor1=floor,a.type1=1;
+	a.node1=node,a.flor1=flor,a.type1=1;//flor维护（todo
 	data.push(a);
-	shape="shape=diamond";
+	special=1;
+	return;
+}
+string label[1007];
+void clean()
+{
+	label[node]=str2;
+	if(special)
+	{
+		printf("\"%s\"->\"%s\"\n\"%s\"[shape=diamond]\n",label[node-1].c_str(),label[node].c_str(),label[node].c_str());
+	}
+	else
+	{
+		printf("\"%s\"->\"%s\"\n",label[node-1].c_str(),label[node].c_str());
+	}
+	str2="";
 	return;
 }
 void get_token()
 {
-	str2=s="";
-	for(int i=0;i<str1.length(),++i)
+	for(int i=0;i<str1.length();++i)
 	{
-		s+=str1[i];
 		if(in_quote)//如果在引号中，就不用识别token
 		{
+			s+=str1[i];
 			if(str1[i]=='"'){in_quote=0;}
 			else {continue;}
 		}
 		else if(isgap(str1[i]))
 		{
 			//如果这个gap代表一个特殊语句的开始
-			if(s=="if")start_if(i);
+			if(s=="if")start_if(i);//todo:else
+			/*
 			else if(s=="while")start_while(i);
 			else if(s=="for")start_for(i);
 			else if(s=="return")do_return(i);//todo
 			else if(s=="continue")do_continue(i);//todo
-			//...收尾
-
+			*/
+			
+			//...收尾(todo
 			//把s和这个gap加到str2后面
-			str2+=s,s="";
-			if(str1[i]!=' ')str2+=" ";
-			str2+=str1[i];
+			if(str1[i]!='{'&&str1[i]!='}'&&str1[i]!=' '&&str1[i]!='"')//不要大括号，不要双引号，不要多余空格	
+			s=s+" "+str1[i];
+			if(s!="")str2=str2+" "+s,s="";
 			//处理括号
 			if(str1[i]=='(')bracket++;
 			else if(str1[i]==')')
 			{
 				bracket--;
-				if(!bracket)clean();//这个gap代表一个特殊语句(if,while,for)的结束
+				if(!bracket&&special)
+				{
+					clean();//这个gap代表一个特殊语句(if,while,for)的结束
+					special=0;
+				}
 			}
-			else if(str1[i]=='{')floor++；
-			else if(str1[i]=='}')floor--;
+			else if(str1[i]=='{')flor++;
+			else if(str1[i]=='}')flor--;
 			
-			//用map来储存while和for的层级（todo
-
-			if(str1[i]==';')clean();//一句话结束了，创建一个新节点
+			if(str1[i]==';'){node++;clean();}//一句话结束了，创建一个新节点
 		}
+		else s+=str1[i];
 	}
 }
 int main()
 {
 	freopen("c.in","r",stdin);
-	printf("digraph example{\n");
+	printf(" digraph example{\n");
+	label[0]="start";
 	while(getline(cin,str))
 	{
 		//初处理
@@ -107,5 +132,7 @@ int main()
 
 		//cout<<str1<<endl;
 	}
+	printf("}");
+
 	return 0;
 }
