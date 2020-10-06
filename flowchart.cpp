@@ -34,11 +34,19 @@ bool isgap(char x)
 	if(x=='_')return false;
 	return true;
 }
-int bracket;
-string shape;
+int node=0,floor=0;
+struct st{
+	int node1,floor1,type1;
+};
+stack<st>data;
+int bracket=0;//圆括号
+string shape="";
 void start_if(int i)
 {
-	bracket=1;
+	floor++,node++;
+	st a;
+	a.node1=node,a.floor1=floor,a.type1=1;
+	data.push(a);
 	shape="shape=diamond";
 	return;
 }
@@ -53,22 +61,32 @@ void get_token()
 			if(str1[i]=='"'){in_quote=0;}
 			else {continue;}
 		}
-		if(isgap(str1[i]))
+		else if(isgap(str1[i]))
 		{
 			//如果这个gap代表一个特殊语句的开始
 			if(s=="if")start_if(i);
 			else if(s=="while")start_while(i);
 			else if(s=="for")start_for(i);
-			else if(s=="return")do_return(i);
-			else if(s=="return")do_return(i);
-			else if(s=="continue")do_continue(i);
-			//...
-			
-			//把s加到str2后面
+			else if(s=="return")do_return(i);//todo
+			else if(s=="continue")do_continue(i);//todo
+			//...收尾
+
+			//把s和这个gap加到str2后面
 			str2+=s,s="";
 			if(str1[i]!=' ')str2+=" ";
-			str2+=str[i];
-			//
+			str2+=str1[i];
+			//处理括号
+			if(str1[i]=='(')bracket++;
+			else if(str1[i]==')')
+			{
+				bracket--;
+				if(!bracket)clean();//这个gap代表一个特殊语句(if,while,for)的结束
+			}
+			else if(str1[i]=='{')floor++；
+			else if(str1[i]=='}')floor--;
+			
+			//用map来储存while和for的层级（todo
+
 			if(str1[i]==';')clean();//一句话结束了，创建一个新节点
 		}
 	}
@@ -79,15 +97,15 @@ int main()
 	printf("digraph example{\n");
 	while(getline(cin,str))
 	{
+		//初处理
 		p=0,str1="";
 		while(p<str.length())
 			reform();
 		if(str1=="")continue;
-
+		//
 		get_token();
 
 		//cout<<str1<<endl;
 	}
 	return 0;
 }
-
