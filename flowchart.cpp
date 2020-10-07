@@ -74,33 +74,38 @@ void start_while()
 }
 string label[1007];
 int father=0;
-void clean()
+void add(int fa,int nod)
 {
-	label[node]=str2;str2="";
-	if(special==1)
+	if(special==1)//这个节点是特殊语句节点
 	{
-		printf("\"%s\"->\"%s\"\n\"%s?\"[shape=diamond]\n",label[father].c_str(),label[node].c_str(),label[node].c_str());
+		printf("\"%s\"->\"%s\"\n\"%s\"[shape=diamond]\n",label[fa].c_str(),label[nod].c_str(),label[nod].c_str());
 	}
 	else
 	{
-		printf("\"%s\"->\"%s\"",label[father].c_str(),label[node].c_str());
-		if(special==2)
+		printf("\"%s\"->\"%s\"",label[fa].c_str(),label[nod].c_str());
+		if(special==2)//这个节点的父节点是特殊语句节点
 		{
-			if(father==node-1)printf("[label=ture]");
+			if(fa==nod-1)printf("[label=ture]");
 			else printf("[label=false]");
+			special=0;
 		}
 		printf("\n");
 	}
-	father=node;
 	return;
 }
-void readd()
+bool in_else=0;int cache1=0,cache2=0;
+void readd()//回溯加边
 {
 	st a=data.top();data.pop();
-	if(a.type1==1)
+	if(a.type1==1)//if语句：把false链连到if节点上
 	{
 		father=a.node1;
 		special=2;
+		//把true链的最后一个节点当作新的特殊节点push进栈
+		a.node1=node;
+		a.type1=4;
+		a.flor1=flor;
+		data.push(a);
 		return;
 	}
 	if(a.type1==2)
@@ -114,6 +119,11 @@ void readd()
 
 	}
 	*/
+	if(a.type1==4)
+	{
+		cache1=a.node1,cache2=node+1;//等效于add(a.node1,node+1);
+		return;
+	}
 	return;
 }
 void get_token()
@@ -130,7 +140,7 @@ void get_token()
 		{
 			//如果这个gap代表一个特殊语句的开始
 			if(s=="if"){start_if();s="";}
-			else if(s=="else"){s="";}
+			else if(s=="else"){in_else=1;s="";}//else的处理todo
 			else if(s=="while"){start_while();s="";}
 			/*
 			else if(s=="for")start_for(i);
@@ -148,17 +158,34 @@ void get_token()
 			else if(str1[i]==')')
 			{
 				bracket--;
-				if(!bracket&&special==1)
+				if((!bracket)&&(special==1))
 				{
-					clean();//这个gap代表一个特殊语句(if,while,for)的结束
+					str2+="?";
+					label[node]=str2;str2="";
+					add(father,node);//这个gap代表一个特殊语句(if,while,for)的结束
+					father=node;
 					special=2;
 				}
 			}
 			else if(str1[i]=='{')flor++;
-			else if(str1[i]=='}')flor--;
-			while(flor==data.top().flor1)readd();//todo!
+			else if(str1[i]=='}')
+			{
+				flor--;
+				if(flor==data.top().flor1){readd();}
+				while(flor==data.top().flor1&&data.top().type1!=4)
+				{readd();}
+			}
+			//todo!
 
-			if(str1[i]==';'){node++;clean();}//一句话结束了，创建一个新节点
+			if(str1[i]==';')
+			{
+				node++;
+				label[node]=str2;str2="";
+				add(father,node);
+				if(cache1){add(cache1,cache2);cache1=cache2=0;}//缓存了的边，现在加上
+				father=node;
+				while(flor==data.top().flor1)readd();
+			}//一句话结束了，创建一个新节点
 		}
 		else s+=str1[i];
 	}
