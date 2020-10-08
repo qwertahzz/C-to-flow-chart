@@ -1,4 +1,4 @@
-//doing:return
+//doing:continue
 
 
 //todo:调整flor的使用
@@ -60,10 +60,12 @@ bool special[1007];//为1则为特殊节点
 string label[1007];
 int father=0;
 bool have_start=0;
+bool continue_link[1007];//使continue只有一个出度
 void add(int fa,int nod)
 {
 	if((!fa)&&(!have_start))return;
-	printf("\"%s\"->\"%s\"",label[fa].c_str(),label[nod].c_str());
+	if(continue_link[fa])return;
+	printf("\"%d\"->\"%d\"",fa,nod);
 	if(special[fa])//这个节点的父节点是特殊语句节点
 	{
 		if(fa==nod-1)printf("[label=ture]");
@@ -79,13 +81,21 @@ void start_if()
 	data.push(a);
 	return;
 }
+stack<int>near_while;//用来维护continue
 void start_while()
 {
 	node++;label[node]=std::to_string(node);
 	add(father,node);father=node;
 	a.node1=node,a.flor1=flor,a.type1=2;
 	data.push(a);
+	near_while.push(node);
 	node++;special[node]=1;
+	return;
+}
+void do_continue()
+{
+	add(node,near_while.top());
+	continue_link[node]=1;
 	return;
 }
 bool in_else=0;
@@ -103,11 +113,12 @@ void readd()//回溯加边
 	}
 	if(a.type1==2)//把while链的末尾接回while框
 	{
-		printf("\"%s\"->\"%s\"\n",label[node].c_str(),label[a.node1].c_str());
+		printf("\"%d\"->\"%d\"\n",node,a.node1);
 		//false链最后加一个point
 		node++;label[node]=std::to_string(node);
 		add(a.node1+1,node);
-		father=node;//原:father=a.node1
+		father=node;
+		near_while.pop();
 		return;
 	}
 	/*for:todo
@@ -128,7 +139,7 @@ void readd()//回溯加边
 	}
 	return;
 }
-bool in_or_out[1007];
+bool in_or_out[1007];//节点是否为输入/输出节点
 void get_token()
 {
 	if(str1.find("#include")!=str1.npos)return;
@@ -144,12 +155,10 @@ void get_token()
 		{
 			//如果这个gap代表一个特殊语句的开始
 			if(s=="if"){start_if();}
-			else if(s=="else"){in_else=1;s="";}//else的处理todo
+			else if(s=="else"){in_else=1;s="";}
 			else if(s=="while"){start_while();}
 			
 			//else if(s=="for")start_for(i);
-			else if(s=="return");//todo//////////////////////
-			//else if(s=="continue")do_continue(i);//todo
 			else if((s=="scanf")||(s=="printf")||(s=="getchar")){in_or_out[node+1]=1;}
 			//...收尾(todo
 
@@ -213,7 +222,10 @@ void get_token()
 				//
 				node++;
 				label[node]=str2;str2="";
-				add(father,node);father=node;
+				add(father,node);
+				//cout<<"NODE "<<node<<" "<<label[node]<<endl;
+				if(label[node].find("continue;")!=label[node].npos){do_continue();}
+				else father=node;
 				while(flor==data.top().flor1)readd();
 				if(a.type1==4){data.push(a);a.type1=0;}
 			}//一句话结束了，创建一个新节点
@@ -242,15 +254,17 @@ int main()
 	}
 	while(data.size()>1)readd();
 	if(!have_start){have_start=1;add(0,1);}
-	//集中处理shape
-	for(int i=1;i<=node;++i)
+	//集中处理label和shape
+	for(int i=0;i<=node;++i)
 	{
+		printf("\"%d\"[label=\"%s\"",i,label[i].c_str());
 		if(label[i]==std::to_string(i))
-		printf("\"%d\"[shape=point]\n",i);
+		printf(" shape=point");
 		else if(in_or_out[i])
-		printf("\"%s\"[shape=parallelogram]\n",label[i].c_str());
+		printf(" shape=parallelogram");
 		else if(special[i])
-		printf("\"%s\"[shape=diamond]\n",label[i].c_str());
+		printf(" shape=diamond");
+		printf("]\n");
 	}
 	printf("}");
 
