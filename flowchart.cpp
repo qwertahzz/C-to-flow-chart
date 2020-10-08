@@ -11,6 +11,7 @@
 #include<cmath>
 #include<algorithm>
 #include<stack>
+#include<cstdlib>
 using namespace std;
 string str,str1;
 bool lnote=0;
@@ -35,7 +36,6 @@ inline void reform()//去掉注释和制表符和多余空格
 	if(str[p]=='/'&&str[p+1]=='/'){p=str.length();return;}
 	//去掉多余空格和制表符
 	if(str[p]==' '&&str[p+1]==' '){p++;return;}
-	if(str[p]==' '&&p==str.length()-1){p++;return;}
 	//if(str[p]==' '&&(isgap(str[p-1])||isgap(str[p+1]))){p++;return;}
 	if(str[p]=='\t'){p++;return;}
 	
@@ -51,13 +51,13 @@ int node=0,flor=0;
 struct st{
 	int node1,flor1,type1;
 };
+st a;
 stack<st>data;//用stack储存层级信息
 int bracket=0;//圆括号
 int special=0;//1：这句是特殊语句 2：上一句是特殊语句
 void start_if()
 {
 	node++;
-	st a;
 	a.node1=node,a.flor1=flor,a.type1=1;//flor维护（todo
 	data.push(a);
 	special=1;
@@ -66,7 +66,6 @@ void start_if()
 void start_while()
 {
 	node++;
-	st a;
 	a.node1=node,a.flor1=flor,a.type1=2;
 	data.push(a);
 	special=1;
@@ -96,7 +95,7 @@ void add(int fa,int nod)
 bool in_else=0;int cache1=0,cache2=0;
 void readd()//回溯加边
 {
-	st a=data.top();data.pop();
+	a=data.top();data.pop();
 	if(a.type1==1)//if语句：把false链连到if节点上
 	{
 		father=a.node1;
@@ -105,23 +104,30 @@ void readd()//回溯加边
 		a.node1=node;
 		a.type1=4;
 		a.flor1=flor;
-		data.push(a);
 		return;
 	}
-	if(a.type1==2)
+	if(a.type1==2)//把while链的末尾接回while框
 	{
 		printf("\"%s\"->\"%s\"",label[node].c_str(),label[a.node1].c_str());
+		father=a.node1;
+		special=2;
 		return;
 	}
 	/*for:todo
 	if(a.type1==3)
 	{
-
 	}
 	*/
 	if(a.type1==4)
 	{
-		cache1=a.node1,cache2=node+1;//等效于add(a.node1,node+1);
+		//false链最后加一个point
+		node++;label[node]=std::to_string(node);
+		printf("\"%s\"[shape=point]\n",label[node].c_str());
+		add(father,node);//把false链末尾和point相连
+		add(a.node1,node);//把true链末尾和point相连
+		father=node;
+		in_else=0;
+		a.type1=0;
 		return;
 	}
 	return;
@@ -139,9 +145,9 @@ void get_token()
 		else if(isgap(str1[i]))
 		{
 			//如果这个gap代表一个特殊语句的开始
-			if(s=="if"){start_if();s="";}
+			if(s=="if"){start_if();}
 			else if(s=="else"){in_else=1;s="";}//else的处理todo
-			else if(s=="while"){start_while();s="";}
+			else if(s=="while"){start_while();}
 			/*
 			else if(s=="for")start_for(i);
 			else if(s=="return")do_return(i);//todo
@@ -149,10 +155,12 @@ void get_token()
 			*/
 			
 			//...收尾(todo
+
 			//把s和这个gap加到str2后面
 			if(str1[i]!='{'&&str1[i]!='}'&&str1[i]!='"')//不要大括号，不要双引号，不要多余空格	
 			s+=str1[i];
 			if(s!="")str2+=s,s="";
+			
 			//处理括号
 			if(str1[i]=='(')bracket++;
 			else if(str1[i]==')')
@@ -160,7 +168,6 @@ void get_token()
 				bracket--;
 				if((!bracket)&&(special==1))
 				{
-					str2+="?";
 					label[node]=str2;str2="";
 					add(father,node);//这个gap代表一个特殊语句(if,while,for)的结束
 					father=node;
@@ -171,20 +178,29 @@ void get_token()
 			else if(str1[i]=='}')
 			{
 				flor--;
-				if(flor==data.top().flor1){readd();}
-				while(flor==data.top().flor1&&data.top().type1!=4)
+				while(flor==data.top().flor1)
 				{readd();}
+				if(a.type1==4){data.push(a);a.type1=0;}
 			}
 			//todo!
-
 			if(str1[i]==';')
 			{
+				//如果这个if没有else，直接新建point
+				if((data.top().type1==4)&&(flor==data.top().flor1)&&(!in_else))
+				{
+					node++;label[node]=std::to_string(node);
+					printf("\"%s\"[shape=point]\n",label[node].c_str());
+					add(father,node);//把false链末尾和point相连
+					add(data.top().node1,node);//把true链末尾和point相连
+					father=node;
+					data.pop();a.type1=0;
+				}
+				//
 				node++;
 				label[node]=str2;str2="";
-				add(father,node);
-				if(cache1){add(cache1,cache2);cache1=cache2=0;}//缓存了的边，现在加上
-				father=node;
+				add(father,node);father=node;
 				while(flor==data.top().flor1)readd();
+				if(a.type1==4){data.push(a);a.type1=0;}
 			}//一句话结束了，创建一个新节点
 		}
 		else s+=str1[i];
@@ -193,9 +209,10 @@ void get_token()
 int main()
 {
 	freopen("c.in","r",stdin);
-	printf(" digraph example{\n");
+	freopen("c.out","w",stdout);
+    printf(" digraph example{\n");
 	label[0]="start";
-	st a;a.flor1=-2333;data.push(a);
+	a.flor1=-2333;data.push(a);
 	while(getline(cin,str))
 	{
 		//初处理
@@ -208,6 +225,7 @@ int main()
 
 		//cout<<str1<<endl;
 	}
+	while(data.size()>1)readd();
 	printf("}");
 
 	return 0;
