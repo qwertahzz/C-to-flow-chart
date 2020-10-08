@@ -1,10 +1,8 @@
-//写了readd函数，涵盖了if和while的回溯,但是输出有点问题，要调。
-//还写了start_while。
-
 //todo:调整flor的使用
 //todo：for循环怎么把边界什么的抠出来
 
-//中长期todo：1.实现return和continue;2.把源程序和graphviz之间的桥架好
+//中长期todo：实现return和continue;
+//找graphviz，看能不能把最后输出的节点放在图片最下面
 #include<iostream>
 #include<cstdio>
 #include<cstring>
@@ -54,42 +52,36 @@ struct st{
 st a;
 stack<st>data;//用stack储存层级信息
 int bracket=0;//圆括号
-int special=0;//1：这句是特殊语句 2：上一句是特殊语句
+bool special[1007];//为1则为特殊节点
 void start_if()
 {
-	node++;
+	node++;special[node]=1;
 	a.node1=node,a.flor1=flor,a.type1=1;//flor维护（todo
 	data.push(a);
-	special=1;
 	return;
 }
 void start_while()
 {
-	node++;
+	node++;special[node]=1;
 	a.node1=node,a.flor1=flor,a.type1=2;
 	data.push(a);
-	special=1;
 	return;
 }
 string label[1007];
 int father=0;
 void add(int fa,int nod)
 {
-	if(special==1)//这个节点是特殊语句节点
+	if(special[nod])//这个节点是特殊语句节点
 	{
-		printf("\"%s\"->\"%s\"\n\"%s\"[shape=diamond]\n",label[fa].c_str(),label[nod].c_str(),label[nod].c_str());
+		printf("\"%s\"[shape=diamond]\n",label[nod].c_str());
 	}
-	else
+	printf("\"%s\"->\"%s\"",label[fa].c_str(),label[nod].c_str());
+	if(special[fa])//这个节点的父节点是特殊语句节点
 	{
-		printf("\"%s\"->\"%s\"",label[fa].c_str(),label[nod].c_str());
-		if(special==2)//这个节点的父节点是特殊语句节点
-		{
-			if(fa==nod-1)printf("[label=ture]");
-			else printf("[label=false]");
-			special=0;
-		}
-		printf("\n");
+		if(fa==nod-1)printf("[label=ture]");
+		else printf("[label=false]");
 	}
+	printf("\n");
 	return;
 }
 bool in_else=0;int cache1=0,cache2=0;
@@ -99,18 +91,20 @@ void readd()//回溯加边
 	if(a.type1==1)//if语句：把false链连到if节点上
 	{
 		father=a.node1;
-		special=2;
 		//把true链的最后一个节点当作新的特殊节点push进栈
-		a.node1=node;
+		a.node1=node;////////////////////////////
 		a.type1=4;
 		a.flor1=flor;
 		return;
 	}
 	if(a.type1==2)//把while链的末尾接回while框
 	{
-		printf("\"%s\"->\"%s\"",label[node].c_str(),label[a.node1].c_str());
-		father=a.node1;
-		special=2;
+		printf("\"%s\"->\"%s\"\n",label[node].c_str(),label[a.node1].c_str());
+		//false链最后加一个point
+		node++;label[node]=std::to_string(node);
+		printf("\"%s\"[shape=point]\n",label[node].c_str());
+		add(a.node1,node);
+		father=node;//原:father=a.node1
 		return;
 	}
 	/*for:todo
@@ -166,18 +160,26 @@ void get_token()
 			else if(str1[i]==')')
 			{
 				bracket--;
-				if((!bracket)&&(special==1))
+				if((!bracket)&&special[node])
 				{
 					label[node]=str2;str2="";
 					add(father,node);//这个gap代表一个特殊语句(if,while,for)的结束
 					father=node;
-					special=2;
 				}
 			}
 			else if(str1[i]=='{')flor++;
 			else if(str1[i]=='}')
 			{
 				flor--;
+				//如果这个if没有else，直接新建point
+				if((data.top().type1==4)&&(flor<=data.top().flor1)&&(!in_else))
+				{
+					node++;label[node]=std::to_string(node);
+					add(father,node);//把false链末尾和point相连
+					add(data.top().node1,node);//把true链末尾和point相连
+					father=node;
+					data.pop();a.type1=0;
+				}
 				while(flor==data.top().flor1)
 				{readd();}
 				if(a.type1==4){data.push(a);a.type1=0;}
@@ -186,7 +188,7 @@ void get_token()
 			if(str1[i]==';')
 			{
 				//如果这个if没有else，直接新建point
-				if((data.top().type1==4)&&(flor==data.top().flor1)&&(!in_else))
+				if((data.top().type1==4)&&(flor<=data.top().flor1)&&(!in_else))
 				{
 					node++;label[node]=std::to_string(node);
 					printf("\"%s\"[shape=point]\n",label[node].c_str());
