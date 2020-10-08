@@ -56,6 +56,22 @@ st a;
 stack<st>data;//用stack储存层级信息
 int bracket=0;//圆括号
 bool special[1007];//为1则为特殊节点
+///
+string label[1007];
+int father=0;
+bool have_start=0;
+void add(int fa,int nod)
+{
+	if((!fa)&&(!have_start))return;
+	printf("\"%s\"->\"%s\"",label[fa].c_str(),label[nod].c_str());
+	if(special[fa])//这个节点的父节点是特殊语句节点
+	{
+		if(fa==nod-1)printf("[label=ture]");
+		else printf("[label=false]");
+	}
+	printf("\n");
+	return;
+}
 void start_if()
 {
 	node++;special[node]=1;
@@ -65,33 +81,11 @@ void start_if()
 }
 void start_while()
 {
-	node++;special[node]=1;
+	node++;label[node]=std::to_string(node);
+	add(father,node);father=node;
 	a.node1=node,a.flor1=flor,a.type1=2;
 	data.push(a);
-	return;
-}
-string label[1007];
-int father=0;
-bool have_start=0;
-void add(int fa,int nod)
-{
-	if(special[nod])//这个节点是特殊语句节点
-	{
-		printf("\"%s\"[shape=diamond]\n",label[nod].c_str());
-	}
-	else
-	{
-		printf("\"%s\"\n",label[nod].c_str());
-	}
-	if((!fa)&&(!have_start))return;
-
-	printf("\"%s\"->\"%s\"",label[fa].c_str(),label[nod].c_str());
-	if(special[fa])//这个节点的父节点是特殊语句节点
-	{
-		if(fa==nod-1)printf("[label=ture]");
-		else printf("[label=false]");
-	}
-	printf("\n");
+	node++;special[node]=1;
 	return;
 }
 bool in_else=0;
@@ -112,7 +106,7 @@ void readd()//回溯加边
 		printf("\"%s\"->\"%s\"\n",label[node].c_str(),label[a.node1].c_str());
 		//false链最后加一个point
 		node++;label[node]=std::to_string(node);
-		add(a.node1,node);
+		add(a.node1+1,node);
 		father=node;//原:father=a.node1
 		return;
 	}
@@ -134,9 +128,10 @@ void readd()//回溯加边
 	}
 	return;
 }
+bool in_or_out[1007];
 void get_token()
 {
-	if(str1[0]=='#')return;
+	if(str1.find("#include")!=str1.npos)return;
 	for(int i=0;i<str1.length();++i)
 	{
 		if(in_quote)//如果在引号中，就不用识别token
@@ -155,7 +150,7 @@ void get_token()
 			//else if(s=="for")start_for(i);
 			else if(s=="return");//todo//////////////////////
 			//else if(s=="continue")do_continue(i);//todo
-			
+			else if((s=="scanf")||(s=="printf")||(s=="getchar")){in_or_out[node+1]=1;}
 			//...收尾(todo
 
 			//把s和这个gap加到str2后面
@@ -247,10 +242,15 @@ int main()
 	}
 	while(data.size()>1)readd();
 	if(!have_start){have_start=1;add(0,1);}
+	//集中处理shape
 	for(int i=1;i<=node;++i)
 	{
 		if(label[i]==std::to_string(i))
 		printf("\"%d\"[shape=point]\n",i);
+		else if(in_or_out[i])
+		printf("\"%s\"[shape=parallelogram]\n",label[i].c_str());
+		else if(special[i])
+		printf("\"%s\"[shape=diamond]\n",label[i].c_str());
 	}
 	printf("}");
 
