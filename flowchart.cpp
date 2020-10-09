@@ -1,9 +1,6 @@
-//todo:调整输出的颜色/字体格式
 
 
-
-
-//todo:调整flor的使用
+//todo:整理flor的使用
 //todo：for循环怎么把边界什么的抠出来
 
 //找graphviz，看能不能把最后输出的节点放在图片最下面
@@ -78,7 +75,7 @@ void add(int fa,int nod)
 void start_if()
 {
 	node++;special[node]=1;
-	a.node1=node,a.flor1=flor,a.type1=1;//flor维护（todo
+	a.node1=node,a.flor1=flor,a.type1=1;
 	data.push(a);
 	return;
 }
@@ -91,10 +88,8 @@ void start_while()
 	a.node1=node,a.flor1=flor,a.type1=2;
 	data.push(a);
 	near_while.push(node);
-	/////////////////////////////////////todo:break
 	//建立while的false链的最后一个点
 	node++;label[node]=std::to_string(node);
-	///////////////////////
 	//建立while框
 	node++;special[node]=1;
 	//
@@ -173,7 +168,6 @@ void get_token()
 			else if(s=="while"){start_while();}
 			//else if(s=="for")start_for(i);
 			else if((s=="scanf")||(s=="printf")||(s=="getchar")){in_or_out[node+1]=1;}
-			//...收尾(todo
 
 			//把s和这个gap加到str2后面
 			if(str1[i]!='{'&&str1[i]!='}'&&str1[i]!='"')//不要大括号，不要双引号，不要多余空格	
@@ -270,18 +264,18 @@ int main()
 	while(data.size()>1)readd();
 	if(!have_start){have_start=1;add(0,1);}
 	//集中处理label和shape
-	printf("\"0\"[label=start fillcolor=tomato style=filled]\n");
+	printf("\"0\"[label=start shape=hexagon fillcolor=tomato style=filled]\n");
 	for(int i=1;i<=node;++i)
 	{
 		printf("\"%d\"[label=\"%s\"",i,label[i].c_str());
 		if(label[i]==std::to_string(i))
-		printf(" shape=point");
+			printf(" shape=point]\n");
 		else if(in_or_out[i])
-		printf(" shape=parallelogram");
+			printf(" shape=parallelogram fillcolor=LightSlateBlue style=filled]\n");
 		else if(special[i])
-		printf(" shape=diamond");
-		else printf(" shape=box");
-		printf("]\n");
+			printf(" shape=diamond fillcolor=DodgerBlue1  style=filled]\n");
+		else
+			printf(" shape=box fillcolor=LightBlue1 style=filled]\n");
 	}
 	add(father,node+1);
 	printf("\"%d\"[label=end fillcolor=DarkSeaGreen1 style=filled]",node+1);
