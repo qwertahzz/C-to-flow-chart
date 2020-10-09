@@ -1,10 +1,11 @@
-//doing:continue
+//todo:调整输出的颜色/字体格式
+
+
 
 
 //todo:调整flor的使用
 //todo：for循环怎么把边界什么的抠出来
 
-//中长期todo：实现return和continue;
 //找graphviz，看能不能把最后输出的节点放在图片最下面
 #include<iostream>
 #include<cstdio>
@@ -60,7 +61,7 @@ bool special[1007];//为1则为特殊节点
 string label[1007];
 int father=0;
 bool have_start=0;
-bool continue_link[1007];//使continue只有一个出度
+bool continue_link[1007];//使continue和break只有一个出度
 void add(int fa,int nod)
 {
 	if((!fa)&&(!have_start))return;
@@ -84,17 +85,30 @@ void start_if()
 stack<int>near_while;//用来维护continue
 void start_while()
 {
+	//建立while框之上的点
 	node++;label[node]=std::to_string(node);
 	add(father,node);father=node;
 	a.node1=node,a.flor1=flor,a.type1=2;
 	data.push(a);
 	near_while.push(node);
+	/////////////////////////////////////todo:break
+	//建立while的false链的最后一个点
+	node++;label[node]=std::to_string(node);
+	///////////////////////
+	//建立while框
 	node++;special[node]=1;
+	//
 	return;
 }
 void do_continue()
 {
 	add(node,near_while.top());
+	continue_link[node]=1;
+	return;
+}
+void do_break()
+{
+	add(node,near_while.top()+1);
 	continue_link[node]=1;
 	return;
 }
@@ -111,13 +125,13 @@ void readd()//回溯加边
 		a.flor1=flor;
 		return;
 	}
-	if(a.type1==2)//把while链的末尾接回while框
+	if(a.type1==2)
 	{
+		//把while链的末尾接回while框
 		printf("\"%d\"->\"%d\"\n",node,a.node1);
-		//false链最后加一个point
-		node++;label[node]=std::to_string(node);
-		add(a.node1+1,node);
-		father=node;
+		//false链最后的point与false链连接
+		add(a.node1+2,a.node1+1);
+		father=a.node1+1;
 		near_while.pop();
 		return;
 	}
@@ -157,7 +171,6 @@ void get_token()
 			if(s=="if"){start_if();}
 			else if(s=="else"){in_else=1;s="";}
 			else if(s=="while"){start_while();}
-			
 			//else if(s=="for")start_for(i);
 			else if((s=="scanf")||(s=="printf")||(s=="getchar")){in_or_out[node+1]=1;}
 			//...收尾(todo
@@ -223,9 +236,11 @@ void get_token()
 				node++;
 				label[node]=str2;str2="";
 				add(father,node);
-				//cout<<"NODE "<<node<<" "<<label[node]<<endl;
+				
 				if(label[node].find("continue;")!=label[node].npos){do_continue();}
+				else if(label[node].find("break;")!=label[node].npos){do_break();}
 				else father=node;
+				
 				while(flor==data.top().flor1)readd();
 				if(a.type1==4){data.push(a);a.type1=0;}
 			}//一句话结束了，创建一个新节点
@@ -255,7 +270,8 @@ int main()
 	while(data.size()>1)readd();
 	if(!have_start){have_start=1;add(0,1);}
 	//集中处理label和shape
-	for(int i=0;i<=node;++i)
+	printf("\"0\"[label=start fillcolor=tomato style=filled]\n");
+	for(int i=1;i<=node;++i)
 	{
 		printf("\"%d\"[label=\"%s\"",i,label[i].c_str());
 		if(label[i]==std::to_string(i))
@@ -264,8 +280,11 @@ int main()
 		printf(" shape=parallelogram");
 		else if(special[i])
 		printf(" shape=diamond");
+		else printf(" shape=box");
 		printf("]\n");
 	}
+	add(father,node+1);
+	printf("\"%d\"[label=end fillcolor=DarkSeaGreen1 style=filled]",node+1);
 	printf("}");
 
 	return 0;
